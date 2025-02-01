@@ -6,6 +6,6 @@ edition = "2021"
 [lib]
 name = "tree_formatter"
 
-[dependencies]
+[dev-dependencies]
 indoc = "2.0.5"
 
