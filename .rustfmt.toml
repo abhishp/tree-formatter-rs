@@ -1,0 +1,13 @@
+edition = "2021"
+max_width = 150
+tab_spaces = 2
+condense_wildcard_suffixes = true
+use_try_shorthand = true
+
+reorder_imports = true
+imports_granularity = "Module"
+group_imports = "StdExternalCrate"
+
+array_width = 120
+struct_lit_width = 60
+struct_variant_width = 80
