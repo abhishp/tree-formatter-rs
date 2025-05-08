@@ -2,10 +2,15 @@
 name = "tree-formatter-rs"
 version = "0.1.0"
 edition = "2021"
+license-file = "LICENSE"
+description = "A simple library to format hierarchical structures as text-based trees"
+homepage = "https://github.com/abhishp/tree-formatter-rs"
+repository = "https://github.com/abhishp/tree-formatter-rs"
+readme = "Readme.md"
+keywords = ["tree", "formatter", "text-tree"]
 
 [lib]
 name = "tree_formatter"
 
 [dev-dependencies]
 indoc = "2.0.5"
-
