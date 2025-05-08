@@ -1,13 +1,18 @@
 mod format;
-pub mod macros;
+mod macros;
+
+use std::error::Error;
+use std::fmt::{self, Arguments, Display, Write};
 
 pub use format::*;
-use std::error::Error;
-use std::fmt::{Arguments, Display, Write};
 
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
-struct TreeFormatter<'a> {
+pub trait TreeDisplay {
+  fn fmt(&self, tf: &mut TreeFormatter<'_>) -> fmt::Result;
+}
+
+pub struct TreeFormatter<'a> {
   inner: &'a mut (dyn Write + 'a),
 
   level: usize,
@@ -19,7 +24,7 @@ struct TreeFormatter<'a> {
 
 impl Write for TreeFormatter<'_> {
   #[inline]
-  fn write_str(&mut self, s: &str) -> std::fmt::Result {
+  fn write_str(&mut self, s: &str) -> fmt::Result {
     self.inner.write_str(s)
   }
 }
@@ -68,7 +73,7 @@ impl<'a> TreeFormatter<'a> {
     }
   }
 
-  pub fn write(&mut self, is_last: bool, item: impl Display) -> Result<()> {
+  pub fn write(&mut self, is_last: bool, item: impl Display) -> fmt::Result {
     writeln!(self.inner, "{}{}{}", self.current_context, self.prefix_format.prefix(is_last), item)?;
     if is_last && self.context_indices.len() > self.level - 1 {
       let last_idx = self.context_indices.len() - 1;
@@ -79,11 +84,11 @@ impl<'a> TreeFormatter<'a> {
     Ok(())
   }
 
-  pub fn write_fmt(&mut self, is_last: bool, item: Arguments<'a>) -> Result<()> {
+  pub fn write_fmt(&mut self, is_last: bool, item: Arguments<'a>) -> fmt::Result {
     self.write(is_last, item)
   }
 
-  pub fn write_level(&mut self, is_last: bool, items: impl Iterator<Item = impl Display>) -> Result<()> {
+  pub fn write_level(&mut self, is_last: bool, items: impl Iterator<Item = impl Display>) -> fmt::Result {
     self.begin_level(is_last);
     let mut items = items.peekable();
     while let Some(item) = items.next() {
@@ -92,6 +97,10 @@ impl<'a> TreeFormatter<'a> {
     self.end_level();
     Ok(())
   }
+  
+  pub fn write_tree(&mut self, tree: impl TreeDisplay) -> fmt::Result {
+    tree.fmt(self)
+  }
 }
 
 #[cfg(test)]
@@ -99,7 +108,7 @@ mod tests {
   use super::*;
   use indoc::indoc;
 
-  fn generate_tree<'a>(fmt: &mut TreeFormatter<'a>) -> Result<()> {
+  fn generate_tree(fmt: &mut TreeFormatter) -> Result<()> {
     tree_indent!(fmt);
     tree_write!(fmt, "Child Level 1 #1")?;
     fmt.write_level(false, (1..=3u8).map(|x| format!("Child Level 2 #{x}")))?;
@@ -131,7 +140,9 @@ mod tests {
     let mut formatter = TreeFormatter::new("Root", &mut buf).unwrap();
 
     generate_tree(&mut formatter).unwrap();
-    assert_eq!(buf, indoc! {"
+    assert_eq!(
+      buf,
+      indoc! {"
         Root
         ├── Child Level 1 #1
         │   ├── Child Level 2 #1
@@ -150,7 +161,8 @@ mod tests {
                 ├── Child Level 3 #3
                 ├── Child Level 3 #4
                 └── Child Level 3 #5
-    "});
+    "}
+    );
   }
 
   #[test]
